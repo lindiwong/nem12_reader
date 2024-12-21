@@ -1,16 +1,30 @@
 package assessment.tech.nem12_reader.models;
 
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@NoArgsConstructor
+@AllArgsConstructor
 @Getter
+@ToString
+@Entity
+@Table(name = "meter_readings", uniqueConstraints = @UniqueConstraint(columnNames = {"nmi", "timestamp"}))
 public class MeterReading {
+    @Id
+    @GeneratedValue()
+    @Column(nullable = false, updatable = false)
     private UUID id;
-    @Setter private String nmi;
-    @Setter private LocalDateTime timestamp;
-    @Setter private BigDecimal consumption;
+
+    @Column(length = 10, nullable = false)
+    private String nmi;
+
+    @Column(nullable = false)
+    private LocalDateTime timestamp;
+
+    @Column(nullable = false, precision = 15, scale = 6)
+    private BigDecimal consumption;
 }
