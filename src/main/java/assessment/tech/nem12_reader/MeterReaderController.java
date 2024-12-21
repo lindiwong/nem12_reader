@@ -1,5 +1,6 @@
 package assessment.tech.nem12_reader;
 
+import assessment.tech.nem12_reader.exceptions.CsvProcessingException;
 import assessment.tech.nem12_reader.services.MeterProcessingService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +20,8 @@ public class MeterReaderController {
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> consume(@RequestParam("file") MultipartFile file) {
-        return service.process(file);
+    public ResponseEntity<String> consume(@RequestParam("file") MultipartFile file) throws CsvProcessingException {
+        service.process(file);
+        return ResponseEntity.ok().build();
     }
 }
