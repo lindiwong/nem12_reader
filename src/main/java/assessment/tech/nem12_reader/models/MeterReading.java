@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @NoArgsConstructor
-@AllArgsConstructor
 @Getter
 @ToString
 @Entity
@@ -27,4 +26,10 @@ public class MeterReading {
 
     @Column(nullable = false, precision = 15, scale = 6)
     private BigDecimal consumption;
+
+    public MeterReading(String nmi, LocalDateTime timestamp, BigDecimal consumption) {
+        this.nmi = nmi;
+        this.timestamp = timestamp;
+        this.consumption = consumption;
+    }
 }
