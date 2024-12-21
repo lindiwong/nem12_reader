@@ -22,7 +22,7 @@ public final class CsvUtility {
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
             return reader.lines()
-                    .map(line -> line.split(","))
+                    .map(line -> line.trim().split(","))
                     .collect(Collectors.toList());
         } catch (IOException ex) {
             throw new CsvProcessingException("Failed to process csv file: %s".formatted(ex.getMessage()));
