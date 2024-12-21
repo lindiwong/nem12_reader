@@ -21,6 +21,10 @@ public class MeterReaderController {
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> consume(@RequestParam("file") MultipartFile file) throws CsvProcessingException {
+        // I am going to assume the following inputs from RequestParam will be:
+        // - in appropriate CSV format
+        // - contains a single end (900) record
+        // - contains only NEM12 formatted data
         service.process(file);
         return ResponseEntity.ok().build();
     }
