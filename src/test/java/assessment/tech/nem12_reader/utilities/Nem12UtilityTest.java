@@ -23,7 +23,7 @@ public class Nem12UtilityTest {
                 () -> utility.process(records)
         );
 
-        Assertions.assertEquals("Invalid header record format.", exception.getMessage());
+        Assertions.assertEquals("Invalid header record format", exception.getMessage());
     }
 
     @Test
@@ -85,6 +85,6 @@ public class Nem12UtilityTest {
         InvalidNem12FormatException exception = Assertions.assertThrows(InvalidNem12FormatException.class,
                 () -> utility.process(records));
 
-        Assertions.assertEquals("No end record found (record 900)", exception.getMessage());
+        Assertions.assertEquals("No end (900) record found", exception.getMessage());
     }
 }
