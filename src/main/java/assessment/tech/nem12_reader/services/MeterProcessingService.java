@@ -31,8 +31,7 @@ public class MeterProcessingService {
 
         if (!readings.isEmpty()) {
             // todo: we could implement retry with exponential backoff but
-            //  i dont see a reason to implement it here since
-            //  i havent encounter any test cases with extremely large records
+            //  i dont see a reason to implement it here right now :)
             repository.saveAll(readings);
         }
 
