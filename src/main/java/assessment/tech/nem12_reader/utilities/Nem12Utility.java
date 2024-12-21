@@ -23,6 +23,10 @@ public class Nem12Utility {
 
     @Getter private final List<MeterReading> readings = new ArrayList<>();
 
+
+    public static List<MeterReading> process(String[] readings) {
+        return new ArrayList<>();
+    }
     /**
      * To validate header record (100) is in accordance to format:
      * <RecordIndicator>,<VersionHeader>,<DateTime>,<FromParticipant>,<ToParticipant>
