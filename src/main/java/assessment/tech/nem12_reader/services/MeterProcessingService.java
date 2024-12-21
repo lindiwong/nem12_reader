@@ -30,9 +30,12 @@ public class MeterProcessingService {
         List<MeterReading> readings = nem12Utility.process(records);
 
         if (!readings.isEmpty()) {
+            // todo: we could implement retry with exponential backoff but
+            //  i dont see a reason to implement it here since
+            //  i havent encounter any test cases with extremely large records
             repository.saveAll(readings);
         }
 
-        log.info("Successfully processed %s records.".formatted(readings.size()));
+        log.info("Successfully processed %s records".formatted(readings.size()));
     }
 }
