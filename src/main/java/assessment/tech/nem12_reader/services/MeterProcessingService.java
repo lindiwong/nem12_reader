@@ -18,28 +18,21 @@ import java.util.List;
 public class MeterProcessingService {
     private static final Logger log = LoggerFactory.getLogger(MeterProcessingService.class);
     private final MeterReadingRepository repository;
-
+    private final Nem12Utility nem12Utility;
 
     public MeterProcessingService(MeterReadingRepository repository) {
         this.repository = repository;
+        this.nem12Utility = new Nem12Utility();
     }
 
     public void process(MultipartFile file) throws CsvProcessingException, InvalidCsvFormatException {
-        final List<MeterReading> newReadings = new ArrayList<>();
-        final int[] count = {0};
+        List<String[]> records = CsvUtility.processFile(file);
+        List<MeterReading> readings = nem12Utility.process(records);
 
-        CsvUtility.processFile(file, record -> {
-            List<MeterReading> readings = Nem12Utility.process(record);
-            if (!readings.isEmpty()) {
-                newReadings.addAll(readings);
-                count[0] += readings.size();
-            }
-        });
-
-        if (!newReadings.isEmpty()) {
-            repository.saveAll(newReadings);
+        if (!readings.isEmpty()) {
+            repository.saveAll(readings);
         }
 
-        log.info("Successfully processed %s records.".formatted(count[0]));
+        log.info("Successfully processed %s records.".formatted(readings.size()));
     }
 }
