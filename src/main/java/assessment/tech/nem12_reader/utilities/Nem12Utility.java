@@ -4,64 +4,119 @@ import assessment.tech.nem12_reader.exceptions.InvalidNem12FormatException;
 import assessment.tech.nem12_reader.models.MeterReading;
 import lombok.Getter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class Nem12Utility {
 
+    @Getter
     public static class NmiData {
         String nmi;
         int intervalLength;
-        LocalDate timestamp;
     }
 
-    private NmiData currentNmi = null;
-    private boolean headerProcessed = false;
+    private static final String RECORD_TYPE_HEADER = "100";
+    private static final String RECORD_TYPE_NMI_DETAIL = "200";
+    private static final String RECORD_TYPE_INTERVAL = "300";
+    private static final String RECORD_TYPE_B2B = "500";
+    private static final String RECORD_TYPE_EOD = "900";
 
-    @Getter private final List<MeterReading> readings = new ArrayList<>();
+    public List<MeterReading> process(List<String[]> records) {
+        if (records == null || records.isEmpty()) {
+            throw new InvalidNem12FormatException("No records found.");
+        }
 
+        boolean hasEndRecord = false;
+        NmiData currentNmiData = null;
+        List<MeterReading> results = new ArrayList<>();
 
-    public static List<MeterReading> process(String[] readings) {
-        return new ArrayList<>();
+        for (String[] record : records) {
+            if (record.length == 0) {
+                continue;
+            }
+
+            String recordType = record[0].trim();
+            switch (recordType) {
+                case RECORD_TYPE_HEADER:
+                    validateHeaderRecord(record);
+                    break;
+                case RECORD_TYPE_NMI_DETAIL:
+                    currentNmiData = processNmiDetailDataRecord(record);
+                    break;
+                case RECORD_TYPE_INTERVAL:
+                    results.addAll(processIntervalDataRecord(record, currentNmiData));
+                    break;
+                case RECORD_TYPE_B2B:
+                    break;
+                case RECORD_TYPE_EOD:
+                    currentNmiData = null;
+                    hasEndRecord = true;
+                    break;
+                default:
+                    throw new InvalidNem12FormatException("Unknown record type %s".formatted(recordType));
+            }
+        }
+
+        if (!hasEndRecord) {
+            throw new InvalidNem12FormatException("No end (900) record found");
+        }
+
+        return results;
     }
+
     /**
-     * To validate header record (100) is in accordance to format:
+     * To validate header record (100) has 5 columns:
      * <RecordIndicator>,<VersionHeader>,<DateTime>,<FromParticipant>,<ToParticipant>
      */
-    public void processHeaderRecord() {
-        if (headerProcessed) {
-            throw new InvalidNem12FormatException("Duplicate header record found.");
-        }
-
-//        if (!readings.isEmpty() || currentNmi != null) {
-//            throw new InvalidNem12FormatException("NEM12 data is not in order. Data does not start with header 100 record.");
-//        }
-
-        headerProcessed = true;
-    }
-
-    /**
-     * To validate NMI data details record (200) is in accordance to format:
-     * <RecordIndicator>,<NMI>,<NMIConfiguration>,<RegisterID>,<NMISuffix>,<MDMDataStreamIdentifier>,
-     * <MeterSerialNumber>,<UOM>,<IntervalLength>,<NextScheduledReadDate>
-     */
-    public void isValidNmiDataDetailsRecord() {
-        if (!headerProcessed) {
-            throw new InvalidNem12FormatException("NMI data details found before header record.");
+    private void validateHeaderRecord(String[] records) {
+        if (records.length < 5) {
+            throw new InvalidNem12FormatException("Invalid header record format");
         }
     }
 
-    /**
-     * To validate interval data record (300) is in accordance to format:
-     * RecordIndicator,IntervalDate,IntervalValue1 . . . IntervalValueN,
-     * QualityMethod,ReasonCode,ReasonDescription,UpdateDateTime,MSATSLoadDateTime
-     */
-    public void isValidIntervalDataRecord(String[] readings) {
-        if (currentNmi == null) {
+    private NmiData processNmiDetailDataRecord(String[] records) {
+        NmiData data = new NmiData();
+        data.nmi = records[4].trim();
+        data.intervalLength = Integer.parseInt(records[8].trim());
+        return data;
+    }
+
+    private List<MeterReading> processIntervalDataRecord(String[] record, NmiData currentNmiData) {
+        if (currentNmiData == null) {
             throw new InvalidNem12FormatException("Interval data found before processing NMI data details.");
         }
+
+        int intervalIndex = 2;
+        int intervalsPerDay = 1440 / currentNmiData.intervalLength;
+
+        List<MeterReading> readings = new ArrayList<>();
+        if (record.length < (intervalIndex + intervalsPerDay)) {
+            throw new InvalidNem12FormatException("Not enough intervals within NMI %s.".formatted(currentNmiData.nmi));
+        }
+
+        for (int i = 2; i < intervalsPerDay; i++) {
+            String value = record[i].trim();
+
+            BigDecimal consumption;
+            try {
+                consumption = new BigDecimal(value);
+            } catch (NumberFormatException ex) {
+                throw new InvalidNem12FormatException("Invalid interval consumption format");
+            }
+
+            String dateRaw = record[1].trim();
+            LocalDate date = LocalDate.parse(
+                    dateRaw.substring(0,4) + "-" + dateRaw.substring(4,6) + "-" + dateRaw.substring(6,8));
+            LocalDateTime timestamp = date.atTime(LocalTime.MIDNIGHT).plusMinutes((long) i * currentNmiData.intervalLength);
+            readings.add(new MeterReading(
+                    currentNmiData.nmi, timestamp, consumption
+            ));
+        }
+
+        return readings;
     }
 }
